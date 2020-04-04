@@ -8,7 +8,7 @@ El repositorio contiene diversos scripts y archivos de ayuda para la instalació
 Instalación de servicios básicos para Debian 10.
 ```
 apt install wget ca-certificates -y
-wget https://raw.githubusercontent.com/wandu-ar/vps-config/master/basic_install_debian10.sh && bash basic_install_debian10.sh
+wget https://raw.githubusercontent.com/wandu-ar/Debian-configs/master/basic_install_debian10.sh && bash basic_install_debian10.sh
 
 ```
 
@@ -17,6 +17,6 @@ wget https://raw.githubusercontent.com/wandu-ar/vps-config/master/basic_install_
 Instalación de servicios básicos para Debian 9.
 ```
 apt install wget ca-certificates -y
-wget https://raw.githubusercontent.com/wandu-ar/vps-config/master/basic_install_debian9.sh && bash basic_install_debian9.sh
+wget https://raw.githubusercontent.com/wandu-ar/Debian-configs/master/basic_install_debian9.sh && bash basic_install_debian9.sh
 
 ```
