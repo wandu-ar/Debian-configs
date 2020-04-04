@@ -197,17 +197,20 @@ EOF
 
     echo "> Instalando phpMyAdmin ..."
     wget https://files.phpmyadmin.net/phpMyAdmin/5.0.2/phpMyAdmin-5.0.2-all-languages.zip
-    unzip phpMyAdmin-5.0.2-all-languages.zip
+    unzip -q phpMyAdmin-5.0.2-all-languages.zip
     mv phpMyAdmin-5.0.2-all-languages /usr/share/phpmyadmin
     chown -R www-data:www-data /usr/share/phpmyadmin
 
+    echo "> Ingresa un password para el usuario phpmyadmin ..."
     read PHPMYADMIN_PASSWORD
 
-    echo "CREATE DATABASE phpmyadmin DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" | mysql -u root -p $SQL_ROOT_PASSWORD
+    echo "CREATE DATABASE phpmyadmin DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" | mysql -u root -p$SQL_ROOT_PASSWORD
     
-    echo "GRANT ALL ON phpmyadmin.* TO 'phpmyadmin'@'localhost' IDENTIFIED BY '${PHPMYADMIN_PASSWORD}';" | mysql -u root -p $SQL_ROOT_PASSWORD
+    echo "GRANT ALL ON phpmyadmin.* TO 'phpmyadmin'@'localhost' IDENTIFIED BY '${PHPMYADMIN_PASSWORD}';" | mysql -u root -p$SQL_ROOT_PASSWORD
 
-    echo "FLUSH PRIVILEGES;" | mysql -u root -p $SQL_ROOT_PASSWORD
+    echo "UPDATE mysql.user SET plugin = 'mysql_native_password' WHERE user = 'root' AND plugin = 'unix_socket';" | mysql -u root -p$SQL_ROOT_PASSWORD
+
+    echo "FLUSH PRIVILEGES;" | mysql -u root -p$SQL_ROOT_PASSWORD
 
     mkdir -m 0755 /var/www/phpmyadmin/
 
@@ -238,6 +241,12 @@ EOF
 
     a2ensite phpmyadmin.conf
     systemctl reload apache2
+
+    echo "> Instalando mysqltuner ..."
+    wget http://mysqltuner.pl/ -O mysqltuner.pl --no-check-certificate
+    
+    echo "perl mysqltuner.pl --user root --pass $SQL_ROOT_PASSWORD" > /root/mysqltuner.sh
+    chmod +x /root/mysqltuner.sh
 
     echo "> Instalando LetsEncrypt ..."
     apt -y install certbot python-certbot-apache
