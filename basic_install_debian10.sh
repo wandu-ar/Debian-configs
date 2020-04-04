@@ -24,9 +24,9 @@
 #
 # Author: Alejandro D. Guevara
 # Version: 1.0.0
-# Release date: 31/10/2019
+# Release date: 04/04/2020
 # Languaje: Spanglish
-# Script: basic_install.sh
+# Script: basic_install_debian10.sh
 # 
 # "Dedicado a quienes se dedican a expandir el mundo del software libre..."
 #          
@@ -44,10 +44,10 @@ echo "
 "
 
 
-if grep "^9\." /etc/debian_version > /dev/null; then
-	echo "(INFO) Debian 9 Detectado."
+if grep "^10\." /etc/debian_version > /dev/null; then
+	echo "(INFO) Debian 10 Detectado."
 else
-    echo "(ERROR) No se encontro una instalacion de debian 9 valida."
+    echo "(ERROR) No se encontro una instalacion de debian 10 válida."
     exit 0
 fi
 
