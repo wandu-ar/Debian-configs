@@ -66,9 +66,10 @@ HOSTNAME=$(</etc/hostname)
     apt install unzip -y
 
     echo "> Instalando locate ..."
-    apt install locate
+    apt -y install locate
 
-
+    echo "> Instalando CURL ..."
+    apt -y install curl
 
 ## FIN - Instalacion de utilidades
 
@@ -76,24 +77,25 @@ HOSTNAME=$(</etc/hostname)
     echo "• Instalacion de webmin."
     
     echo "> Agregando repositorio..."
+    apt -y install gnupg1
     wget -q http://www.webmin.com/jcameron-key.asc -O- | apt-key add -
     echo "deb https://download.webmin.com/download/repository sarge contrib" | tee /etc/apt/sources.list.d/webmin.list
 
     echo "> Instalando dependencias..."
-    apt install apt-transport-https -y
+    apt -y install apt-transport-https
 
     echo "> Actualizando paquetes..."
     apt update
 
     echo "> Instalando webmin..."
-    apt install webmin -y
+    apt -y install webmin
 ## FIN - Instalacion de WEBMIN
 
 ## INI - Instalacion de UFW
     echo "• Instalacion de UFW (Firewall)."
     
     echo "> Instalando UFW..."
-    apt install ufw -y
+    apt -y install ufw
 
     echo "> Por favor, escriba el puerto SSH."
     echo "> ATENCIÓN: Un error en el puerto podría dejarte sin acceso por SSH."
@@ -127,7 +129,7 @@ title=Webmin
 description=Webmin service
 ports=10000/tcp
 EOF
-    ufw enable
+    ufw --force enable
     service ufw force-reload
 ## FIN - Instalacion de UFW
 
@@ -139,24 +141,33 @@ EOF
     #REF: https://certbot.eff.org/lets-encrypt/debianstretch-apache.html
     
     echo "> Instalando MariaDB..."
-    apt install mariadb-server -y
-    mysql_secure_installation
+    apt -y install mariadb-server
 
+    echo "> Ingrese la clave para root en servidor de base datos"
+    read SQL_ROOT_PASSWORD
+
+    mysql_secure_installation
 
     echo "> Instalando PHP-FPM..."
     echo "> Agregando repositorios..."
-    apt install ca-certificates -y
+    apt -y install ca-certificates
     wget -q https://packages.sury.org/php/apt.gpg -O- | apt-key add -
-    echo "deb https://packages.sury.org/php/ stretch main" | tee /etc/apt/sources.list.d/php.list
+    echo "deb https://packages.sury.org/php/ buster main" | tee /etc/apt/sources.list.d/php.list
 
     echo "> Actualizando paquetes..."
     apt update
 
-    echo "> Instalando PHP 5.6 ..."
-    apt install php5.6 php5.6-fpm php5.6-mysql php5.6-curl php5.6-gd php5.6-memcache php5.6-opcache php5.6-apcu php5.6-bz2 php5.6-zip php5.6-mbstring php5.6-xml -y
+    #echo "> Instalando PHP 5.6 ..."
+    #apt install php5.6 php5.6-fpm php5.6-mysql php5.6-curl php5.6-gd php5.6-memcache php5.6-opcache php5.6-apcu php5.6-bz2 php5.6-zip php5.6-mbstring php5.6-xml -y
+
+    echo "> Instalando dependencias para PHP ..."
+    apt -y install libcurl4
 
     echo "> Instalando PHP 7.3 ..."
-    apt install php7.3 php7.3-fpm php7.3-mysql php7.3-curl php7.3-gd php7.3-memcache php7.3-opcache php7.3-apcu php7.3-bz2 php7.3-zip php7.3-mbstring php7.3-xml -y
+    apt -y install php7.3 php7.3-fpm php7.3-mysql php7.3-curl php7.3-gd php7.3-opcache php7.3-bz2 php7.3-zip php7.3-mbstring php7.3-xml php7.3-json php7.3-mysqlnd php7.3-intl php7.3-gmp php7.3-cli
+
+    echo "> Instalando paquetes adicionales para PHP ..."
+    apt -y install php-memcache php-apcu php-imagick php-phpseclib php-php-gettext
 
     echo "> Instalando Apache 2 y mod-fcgid para PHP-FPM ..."
     apt install apache2 libapache2-mod-fcgid -y
@@ -177,15 +188,26 @@ EOF
     echo "> Securizando apache ..."
     sed -i 's/ServerSignature.*/ServerSignature Off/' /etc/apache2/conf-available/security.conf
     sed -i 's/ServerTokens.*/ServerTokens Prod/' /etc/apache2/conf-available/security.conf
-    sed -i 's/#Header set X-Frame-Options.*/Header set X-Frame-Options: "sameorigin"/' /etc/apache2/conf-available/security.conf
+    
+    # No usar... porque no me anda los frames
+    # sed -i 's/#Header set X-Frame-Options.*/Header set X-Frame-Options: "sameorigin"/' /etc/apache2/conf-available/security.conf
 
     echo "> Reiniciando servicio Apache..."
     systemctl restart apache2
 
     echo "> Instalando phpMyAdmin ..."
-    apt install phpmyadmin -y
+    wget https://files.phpmyadmin.net/phpMyAdmin/5.0.2/phpMyAdmin-5.0.2-all-languages.zip
+    unzip phpMyAdmin-5.0.2-all-languages.zip
+    mv phpMyAdmin-5.0.2-all-languages /usr/share/phpmyadmin
+    chown -R www-data:www-data /usr/share/phpmyadmin
 
-    echo "UPDATE mysql.user SET plugin = 'mysql_native_password' WHERE user = 'root' AND plugin = 'unix_socket';FLUSH PRIVILEGES;" | mysql -u root -p
+    read PHPMYADMIN_PASSWORD
+
+    echo "CREATE DATABASE phpmyadmin DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" | mysql -u root -p $SQL_ROOT_PASSWORD
+    
+    echo "GRANT ALL ON phpmyadmin.* TO 'phpmyadmin'@'localhost' IDENTIFIED BY '${PHPMYADMIN_PASSWORD}';" | mysql -u root -p $SQL_ROOT_PASSWORD
+
+    echo "FLUSH PRIVILEGES;" | mysql -u root -p $SQL_ROOT_PASSWORD
 
     mkdir -m 0755 /var/www/phpmyadmin/
 
@@ -207,7 +229,7 @@ EOF
         Require all granted
     </Directory>
     <FilesMatch ".+\.ph(p[3457]?|t|tml)$">
-        SetHandler "proxy:unix:/run/php/php5.6-fpm.sock|fcgi://localhost"
+        SetHandler "proxy:unix:/run/php/php7.3-fpm.sock|fcgi://localhost"
     </FilesMatch>
 </VirtualHost>
 EOF
@@ -218,14 +240,7 @@ EOF
     systemctl reload apache2
 
     echo "> Instalando LetsEncrypt ..."
-    echo "> Agregando repositorios..."
-    echo "deb http://ftp.debian.org/debian stretch-backports main" | tee /etc/apt/sources.list.d/lets-encrypt.list
-
-    echo "> Actualizando paquetes..."
-    apt update
-
-    echo "> Instalando certbot ..."
-    apt install python-certbot-apache -y -t stretch-backports
+    apt -y install certbot python-certbot-apache
 
 ## FIN - Instalacion de LAMP
 
@@ -233,7 +248,7 @@ EOF
     echo "• Instalacion de fail2ban."
 
     echo "> Instalando fail2ban ..."
-    apt install fail2ban -y
+    apt -y install fail2ban 
 
     cat > /etc/fail2ban/jail.local << EOF
 [sshd]
@@ -255,9 +270,14 @@ EOF
     service fail2ban reload
 ## FIN - Instalacion de fail2ban
 
+## INI - Instalacion de GIT
+    echo "• Instalacion de GIT."
+    apt -y install git 
+## FIN - Instalacion de GIT
+
 ## INI - Instalacion de sudo
     echo "• Instalacion de sudo."
-    apt install sudo -y
+    apt -y install sudo 
 
     usermod --shell /bin/bash www-data
 ## FIN - Instalacion de sudo
@@ -266,9 +286,6 @@ EOF
 
 ## INI - Instalacion de Composer
     echo "• Instalacion de composer."
-
-    echo "> Instalando dependencias ..."
-    apt install curl php-cli php-mbstring git -y
 
     echo "> Instalando composer ..."
     curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
