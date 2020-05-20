@@ -70,6 +70,9 @@ HOSTNAME=$(</etc/hostname)
 
     echo "> Instalando CURL ..."
     apt -y install curl
+    
+    echo "> Instalando editor nano ..."
+    apt -y install nano
 
 ## FIN - Instalacion de utilidades
 
